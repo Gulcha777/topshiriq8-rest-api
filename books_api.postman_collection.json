@@ -1,0 +1,912 @@
+{
+  "info": {
+    "name": "Books API - Topshiriq 8",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Har bir endpoint uchun muvaffaqiyatli va xatolik testlari. Tartib bilan (Runner) ishga tushiring."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "bookId",
+      "value": ""
+    },
+    {
+      "key": "isbn",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Muvaffaqiyatli holatlar",
+      "item": [
+        {
+          "name": "POST /books - kitob yaratish (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Har so'rovdan oldin noyob va to'g'ri kontrol raqamli ISBN-13 yaratamiz",
+                  "function makeIsbn() {",
+                  "  var d = '978' + String(Date.now()).slice(-9);",
+                  "  var sum = 0;",
+                  "  for (var i = 0; i < 12; i++) { sum += parseInt(d[i], 10) * (i % 2 === 0 ? 1 : 3); }",
+                  "  return d + String((10 - sum % 10) % 10);",
+                  "}",
+                  "pm.collectionVariables.set('isbn', makeIsbn());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201 Created\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Location sarlavhasi bor\", function () { pm.expect(pm.response.headers.get('Location')).to.match(/\\/api\\/v1\\/books\\/\\d+$/); });",
+                  "pm.test(\"Javob tanasi to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.id).to.be.a('number');",
+                  "  pm.expect(j.title).to.eql('Postman kitobi');",
+                  "  pm.expect(j.isbn).to.eql(pm.collectionVariables.get('isbn'));",
+                  "  pm.expect(j.price).to.eql(45000.5);",
+                  "  pm.collectionVariables.set('bookId', j.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman kitobi\",\n  \"author\": \"Test Muallif\",\n  \"isbn\": \"{{isbn}}\",\n  \"publication_year\": 2020,\n  \"genre\": \"Test\",\n  \"price\": 45000.5,\n  \"available\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /books/{id} - bitta kitob (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"ID mos keladi\", function () { pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('bookId')); });",
+                  "pm.test(\"Barcha maydonlar bor\", function () {",
+                  "  pm.expect(pm.response.json()).to.have.all.keys('id','title','author','isbn','publication_year','genre','price','available');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "{{bookId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /books - sahifalangan ro'yxat (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Sahifalash tuzilmasi\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j).to.have.all.keys('items','page','size','total','pages');",
+                  "  pm.expect(j.items).to.be.an('array').with.lengthOf.at.most(2);",
+                  "  pm.expect(j.page).to.eql(1);",
+                  "  pm.expect(j.size).to.eql(2);",
+                  "  pm.expect(j.total).to.be.at.least(1);",
+                  "});",
+                  "pm.test(\"X-Total-Count sarlavhasi total ga teng\", function () {",
+                  "  pm.expect(parseInt(pm.response.headers.get('X-Total-Count'), 10)).to.eql(pm.response.json().total);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books?page=1&size=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /books - filtr va saralash (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Filtr: faqat janr=Test, narx kamayish tartibida\", function () {",
+                  "  var items = pm.response.json().items;",
+                  "  pm.expect(items.length).to.be.at.least(1);",
+                  "  items.forEach(function (b) { pm.expect(b.genre).to.eql('Test'); });",
+                  "  for (var i = 1; i < items.length; i++) { pm.expect(items[i-1].price).to.be.at.least(items[i].price); }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books?genre=test&sort_by=price&order=desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books"
+              ],
+              "query": [
+                {
+                  "key": "genre",
+                  "value": "test"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "price"
+                },
+                {
+                  "key": "order",
+                  "value": "desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /books/{id} - to'liq almashtirish (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Maydonlar almashtirildi\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.title).to.eql('Yangilangan nom');",
+                  "  pm.expect(j.price).to.eql(50000);",
+                  "  pm.expect(j.genre).to.eql(null);",
+                  "  pm.expect(j.id).to.eql(pm.collectionVariables.get('bookId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "{{bookId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Yangilangan nom\",\n  \"author\": \"Test Muallif\",\n  \"isbn\": \"{{isbn}}\",\n  \"publication_year\": 2020,\n  \"genre\": null,\n  \"price\": 50000,\n  \"available\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /books/{id} - qisman yangilash (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Faqat narx o'zgardi\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.price).to.eql(55000);",
+                  "  pm.expect(j.title).to.eql('Yangilangan nom');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "{{bookId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 55000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Xatolik holatlari",
+      "item": [
+        {
+          "name": "POST /books - noto'g'ri ma'lumot (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(400);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });",
+                  "",
+                  "pm.test(\"errors ro'yxatida title, isbn, price bor\", function () {",
+                  "  var fields = pm.response.json().errors.map(function (e) { return e.field; });",
+                  "  pm.expect(fields).to.include.members(['title', 'isbn', 'price']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"author\": \"A\",\n  \"isbn\": \"123\",\n  \"publication_year\": 2020,\n  \"price\": -5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /books - takroriy ISBN (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409 Conflict\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(409);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman kitobi\",\n  \"author\": \"Test Muallif\",\n  \"isbn\": \"{{isbn}}\",\n  \"publication_year\": 2020,\n  \"genre\": \"Test\",\n  \"price\": 45000.5,\n  \"available\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /books - noto'g'ri query (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(400);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });",
+                  "",
+                  "pm.test(\"Xato query'da\", function () { pm.expect(pm.response.json().errors[0].in).to.eql('query'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books?page=0&size=1000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "1000"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /books/{id} - mavjud emas (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404 Not Found\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(404);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "999999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /books/{id} - ID raqam emas (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(400);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "abc"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /books/{id} - mavjud emas (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404 Not Found\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(404);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "999999999"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman kitobi\",\n  \"author\": \"Test Muallif\",\n  \"isbn\": \"{{isbn}}\",\n  \"publication_year\": 2020,\n  \"genre\": \"Test\",\n  \"price\": 45000.5,\n  \"available\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PUT /books/{id} - noto'g'ri ma'lumot (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(400);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "{{bookId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"faqat nom\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /books/{id} - bo'sh tana (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(400);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "{{bookId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /books/{id} - mavjud emas (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404 Not Found\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(404);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "999999999"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. O'chirish",
+      "item": [
+        {
+          "name": "DELETE /books/{id} - o'chirish (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204 No Content\", function () { pm.response.to.have.status(204); });",
+                  "pm.test(\"Javob tanasi bo'sh\", function () { pm.expect(pm.response.text()).to.eql(''); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "{{bookId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /books/{id} - o'chirilgandan keyin (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404 Not Found\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(404);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "{{bookId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /books/{id} - qayta o'chirish (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404 Not Found\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(404);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/{{bookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "{{bookId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "DELETE /books/{id} - ID raqam emas (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400 Bad Request\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Xato formati to'g'ri\", function () {",
+                  "  var j = pm.response.json();",
+                  "  pm.expect(j.status).to.eql(400);",
+                  "  pm.expect(j).to.have.property('message');",
+                  "  pm.expect(j).to.have.property('path');",
+                  "});",
+                  "pm.test(\"Content-Type JSON\", function () { pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/books/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "books",
+                "abc"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

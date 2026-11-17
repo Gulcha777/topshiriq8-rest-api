@@ -1,0 +1,1031 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Books API",
+    "description": "\n**Book** resursi uchun RESTful API (Topshiriq \u21168).\n\n* To'liq CRUD: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`\n* Sahifalash (`page`, `size`), filtrlash va saralash (`sort_by`, `order`)\n* DTO orqali validatsiya: noto'g'ri ma'lumotga **400 Bad Request** qaytadi\n* Yagona xatolik formati (`status`, `error`, `message`, `path`, `errors`)\n* Versiyalash: URL orqali (`/api/v1/...`)\n",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Lokal server"
+    }
+  ],
+  "paths": {
+    "/api/v1/books": {
+      "post": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Yangi kitob yaratish",
+        "description": "Yangi kitob yaratadi. Muvaffaqiyatda **201 Created** va yangi resurs manzili `Location` sarlavhasida qaytadi.",
+        "operationId": "create_book_api_v1_books_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validatsiya xatosi: so'rov ma'lumotlari noto'g'ri",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflikt: bu ISBN bilan kitob allaqachon mavjud",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Kitoblar ro'yxati (sahifalash, filtr, saralash)",
+        "description": "Filtrlangan, saralangan va sahifalangan ro'yxat. Jami soni `X-Total-Count` sarlavhasida ham qaytadi.\n\nSo'ralgan sahifa oxirgisidan keyin bo'lsa, xato emas, bo'sh `items` qaytadi.",
+        "operationId": "list_books_api_v1_books_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Sahifa raqami (1 dan boshlanadi)",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Sahifa raqami (1 dan boshlanadi)"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Sahifadagi elementlar soni (1-100)",
+              "default": 10,
+              "title": "Size"
+            },
+            "description": "Sahifadagi elementlar soni (1-100)"
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Nomida shu matn bor (katta-kichik harf farqsiz)",
+              "title": "Title"
+            },
+            "description": "Nomida shu matn bor (katta-kichik harf farqsiz)"
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Muallif nomida shu matn bor (katta-kichik harf farqsiz)",
+              "title": "Author"
+            },
+            "description": "Muallif nomida shu matn bor (katta-kichik harf farqsiz)"
+          },
+          {
+            "name": "genre",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Aynan shu janr (katta-kichik harf farqsiz)",
+              "title": "Genre"
+            },
+            "description": "Aynan shu janr (katta-kichik harf farqsiz)"
+          },
+          {
+            "name": "year_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1450
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Nashr yili shundan kam emas",
+              "title": "Year From"
+            },
+            "description": "Nashr yili shundan kam emas"
+          },
+          {
+            "name": "year_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1450
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Nashr yili shundan ko'p emas",
+              "title": "Year To"
+            },
+            "description": "Nashr yili shundan ko'p emas"
+          },
+          {
+            "name": "available",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Mavjudlik: true yoki false",
+              "title": "Available"
+            },
+            "description": "Mavjudlik: true yoki false"
+          },
+          {
+            "name": "min_price",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Narx shundan kam emas",
+              "title": "Min Price"
+            },
+            "description": "Narx shundan kam emas"
+          },
+          {
+            "name": "max_price",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Narx shundan ko'p emas",
+              "title": "Max Price"
+            },
+            "description": "Narx shundan ko'p emas"
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortField",
+              "description": "Saralash maydoni",
+              "default": "id"
+            },
+            "description": "Saralash maydoni"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder",
+              "description": "Saralash yo'nalishi",
+              "default": "asc"
+            },
+            "description": "Saralash yo'nalishi"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_BookRead_"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validatsiya xatosi: so'rov ma'lumotlari noto'g'ri",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/books/{book_id}": {
+      "get": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Kitobni ID bo'yicha olish",
+        "operationId": "get_book_api_v1_books__book_id__get",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Kitob identifikatori (1 dan boshlanuvchi butun son)",
+              "examples": [
+                1
+              ],
+              "title": "Book Id"
+            },
+            "description": "Kitob identifikatori (1 dan boshlanuvchi butun son)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validatsiya xatosi: so'rov ma'lumotlari noto'g'ri",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kitob topilmadi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Kitobni to'liq almashtirish",
+        "description": "Resursning **to'liq** yangi ko'rinishini yuboring. Yuborilmagan ixtiyoriy maydonlar standart qiymatga qaytadi\n(`genre` bo'sh, `available` true). Bir xil so'rovni takrorlash natijani o'zgartirmaydi (idempotent).",
+        "operationId": "replace_book_api_v1_books__book_id__put",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Kitob identifikatori (1 dan boshlanuvchi butun son)",
+              "examples": [
+                1
+              ],
+              "title": "Book Id"
+            },
+            "description": "Kitob identifikatori (1 dan boshlanuvchi butun son)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validatsiya xatosi: so'rov ma'lumotlari noto'g'ri",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kitob topilmadi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflikt: bu ISBN bilan kitob allaqachon mavjud",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Kitobni qisman yangilash",
+        "description": "Faqat yuborilgan maydonlar o'zgaradi. `genre` ni tozalash uchun `null` yuboring.",
+        "operationId": "patch_book_api_v1_books__book_id__patch",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Kitob identifikatori (1 dan boshlanuvchi butun son)",
+              "examples": [
+                1
+              ],
+              "title": "Book Id"
+            },
+            "description": "Kitob identifikatori (1 dan boshlanuvchi butun son)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validatsiya xatosi: so'rov ma'lumotlari noto'g'ri",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kitob topilmadi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Konflikt: bu ISBN bilan kitob allaqachon mavjud",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Books"
+        ],
+        "summary": "Kitobni o'chirish",
+        "description": "Muvaffaqiyatda **204 No Content** (javob tanasi yo'q). Qayta o'chirishga urinish 404 beradi.",
+        "operationId": "delete_book_api_v1_books__book_id__delete",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Kitob identifikatori (1 dan boshlanuvchi butun son)",
+              "examples": [
+                1
+              ],
+              "title": "Book Id"
+            },
+            "description": "Kitob identifikatori (1 dan boshlanuvchi butun son)"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Validatsiya xatosi: so'rov ma'lumotlari noto'g'ri",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kitob topilmadi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Service"
+        ],
+        "summary": "Xizmat holati",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BookCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "description": "Kitob nomi"
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Author",
+            "description": "Muallif"
+          },
+          "isbn": {
+            "type": "string",
+            "title": "Isbn",
+            "description": "ISBN-13 (defis bilan yoki defissiz); saqlashda defissiz ko'rinishga keltiriladi"
+          },
+          "publication_year": {
+            "type": "integer",
+            "minimum": 1450.0,
+            "title": "Publication Year",
+            "description": "Nashr yili (1450 dan joriy yilgacha)"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1,
+                "description": "Janr"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genre"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Price",
+            "description": "Narx (so'm), 0 dan 999999.99 gacha, kasr qismi ko'pi bilan 2 ta raqam"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "author",
+          "isbn",
+          "publication_year",
+          "price"
+        ],
+        "title": "BookCreate",
+        "description": "Yangi kitob yaratish (POST) va to'liq almashtirish (PUT) uchun.",
+        "examples": [
+          {
+            "author": "Abdulla Qodiriy",
+            "available": true,
+            "genre": "Roman",
+            "isbn": "978-9943-00001-8",
+            "price": 59000.0,
+            "publication_year": 1926,
+            "title": "O'tkan kunlar"
+          }
+        ]
+      },
+      "BookPatch": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "description": "Kitob nomi"
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Author",
+            "description": "Muallif"
+          },
+          "isbn": {
+            "type": "string",
+            "title": "Isbn"
+          },
+          "publication_year": {
+            "type": "integer",
+            "minimum": 1450.0,
+            "title": "Publication Year",
+            "description": "Nashr yili (1450 dan joriy yilgacha)"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1,
+                "description": "Janr"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genre"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Price",
+            "description": "Narx (so'm), 0 dan 999999.99 gacha, kasr qismi ko'pi bilan 2 ta raqam"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "BookPatch",
+        "description": "PATCH: faqat yuborilgan maydonlar o'zgaradi."
+      },
+      "BookRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "isbn": {
+            "type": "string",
+            "title": "Isbn"
+          },
+          "publication_year": {
+            "type": "integer",
+            "title": "Publication Year"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genre"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price",
+            "description": "Narx (so'm), 0 dan 999999.99 gacha, kasr qismi ko'pi bilan 2 ta raqam"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "author",
+          "isbn",
+          "publication_year",
+          "genre",
+          "price",
+          "available"
+        ],
+        "title": "BookRead",
+        "description": "Javobda qaytariladigan kitob."
+      },
+      "BookUpdate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "description": "Kitob nomi"
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Author",
+            "description": "Muallif"
+          },
+          "isbn": {
+            "type": "string",
+            "title": "Isbn",
+            "description": "ISBN-13 (defis bilan yoki defissiz); saqlashda defissiz ko'rinishga keltiriladi"
+          },
+          "publication_year": {
+            "type": "integer",
+            "minimum": 1450.0,
+            "title": "Publication Year",
+            "description": "Nashr yili (1450 dan joriy yilgacha)"
+          },
+          "genre": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1,
+                "description": "Janr"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genre"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,6}|(?=[\\d.]{1,9}0*$)\\d{0,6}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Price",
+            "description": "Narx (so'm), 0 dan 999999.99 gacha, kasr qismi ko'pi bilan 2 ta raqam"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "author",
+          "isbn",
+          "publication_year",
+          "price"
+        ],
+        "title": "BookUpdate",
+        "description": "PUT: resursning TO'LIQ yangi ko'rinishi. Yuborilmagan ixtiyoriy maydonlar standart qiymatga qaytadi.",
+        "examples": [
+          {
+            "author": "Abdulla Qodiriy",
+            "available": true,
+            "genre": "Roman",
+            "isbn": "978-9943-00001-8",
+            "price": 59000.0,
+            "publication_year": 1926,
+            "title": "O'tkan kunlar"
+          }
+        ]
+      },
+      "ErrorResponse": {
+        "properties": {
+          "status": {
+            "type": "integer",
+            "title": "Status"
+          },
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "description": "HTTP status nomi"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FieldError"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors",
+            "description": "Validatsiya xatolari ro'yxati (faqat 400)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "error",
+          "message",
+          "path"
+        ],
+        "title": "ErrorResponse",
+        "description": "Barcha xatoliklar uchun yagona format."
+      },
+      "FieldError": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field",
+            "description": "Xato maydon nomi"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Xato tavsifi"
+          },
+          "in": {
+            "type": "string",
+            "title": "In",
+            "description": "Qayerda: body, query yoki path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "message",
+          "in"
+        ],
+        "title": "FieldError"
+      },
+      "Page_BookRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BookRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "Joriy sahifa (1 dan boshlanadi)"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size",
+            "description": "Sahifadagi elementlar soni (so'ralgan)"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Filtrga mos jami elementlar soni"
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages",
+            "description": "Jami sahifalar soni"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "size",
+          "total",
+          "pages"
+        ],
+        "title": "Page[BookRead]"
+      },
+      "SortField": {
+        "type": "string",
+        "enum": [
+          "id",
+          "title",
+          "author",
+          "publication_year",
+          "price"
+        ],
+        "title": "SortField"
+      },
+      "SortOrder": {
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ],
+        "title": "SortOrder"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Books",
+      "description": "Kitoblar bilan ishlash"
+    },
+    {
+      "name": "Service",
+      "description": "Xizmat holati"
+    }
+  ]
+}
